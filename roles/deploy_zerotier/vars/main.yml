@@ -1,0 +1,68 @@
+---
+regex_match_ec2_security_groups: "^(security_group_)(.*)$"
+regex_match_ec2_zerotier_group_tags: "^(tag_Zerotier_group_)(.*)_true$"
+regex_match_ec2_zerotier_ip_mask_tag: "^(tag_Zerotier_ip_)(\\d+)_(\\d+)_(\\d+)_(\\d+)_(\\d+)$"
+regex_match_ec2_zerotier_ip_tag: "^(tag_Zerotier_ip_)(\\d+)_(\\d+)_(\\d+)_(\\d+)$"
+
+regex_match_azure_security_groups: "^(nsg)(.*)$"
+regex_match_azure_zerotier_group_tags: "^(Zerotier_group_)(.*)_true$"
+regex_match_azure_zerotier_ip_mask_tag: "^(Zerotier_ip_)(\\d+)_(\\d+)_(\\d+)_(\\d+)_(\\d+)$"
+regex_match_azure_zerotier_ip_tag: "^(Zerotier_ip_)(\\d+)_(\\d+)_(\\d+)_(\\d+)$"
+
+ROLE_INTERNAL_zerotier_groups: |
+  [
+    {% for zerotier_group in zerotier_groups | default([]) %}{{ zerotier_group }},{% endfor %}
+    {% for group_name in group_names | default([]) %}
+      {% if group_name is match(regex_match_ec2_security_groups) %}
+        "{{ group_name | regex_replace(regex_match_ec2_security_groups, '\2') }}",
+      {% elif group_name is match(regex_match_ec2_zerotier_group_tags) %}
+        "{{ group_name | regex_replace(regex_match_ec2_zerotier_group_tags, '\2') }}",
+      {% elif group_name is match(regex_match_azure_security_groups) %}
+        "{{ group_name | regex_replace(regex_match_azure_security_groups, '\2') }}",
+      {% elif group_name is match(regex_match_azure_zerotier_group_tags) %}
+        "{{ group_name | regex_replace(regex_match_azure_zerotier_group_tags, '\2') }}",
+      {% endif %}
+    {% endfor %}
+  ]
+
+inbound_rules_ROLE_INTERNAL_pre: |-
+  [
+    {%- for rule in inbound_rules | default([]) -%}
+      {{ rule }},
+    {%- endfor -%}
+    {%- for var in vars | dict2items -%}
+      {%- if var.key is search('_inbound_rule[s]*$') -%}
+        {%- for rule in var.value | default([]) -%}
+          {{ rule }},
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor -%}
+  ]
+
+inbound_rules_ROLE_INTERNAL_computed: |-
+  {%- if inbound_rules_ROLE_INTERNAL_pre | string | trim != '[]' -%}
+    {{ inbound_rules_ROLE_INTERNAL_pre }}
+  {%- else -%}
+    [{'proto':'icmp'}]
+  {%- endif -%}
+
+outbound_rules_ROLE_INTERNAL_pre: |-
+  [
+    {%- for rule in outbound_rules | default([]) -%}
+      {{ rule }},
+    {%- endfor -%}
+    {%- for var in vars | dict2items -%}
+      {%- if var.key is search('_outbound_rule[s]*$') and var.key != 'ROLE_INTERNAL_outbound_rules' -%}
+        {%- for rule in var.value | default([]) -%}
+          {{ rule }},
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor -%}
+  ]
+
+outbound_rules_ROLE_INTERNAL_computed: |-
+  {%- if outbound_rules_ROLE_INTERNAL_pre | string | trim != '[]' -%}
+    {{ outbound_rules_ROLE_INTERNAL_pre }}
+  {%- else -%}
+    [{'proto':'any'}]
+  {%- endif -%}

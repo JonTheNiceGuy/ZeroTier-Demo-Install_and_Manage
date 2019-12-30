@@ -1,0 +1,9 @@
+---
+zerotier_ip: |-
+  {%- for group_name in group_names | default([]) -%}
+    {%- if group_name is match(regex_match_ec2_zerotier_ip_mask_tag) -%}
+      {{ group_name | regex_replace(regex_match_ec2_zerotier_ip_mask_tag, '\2.\3.\4.\5/\6') }}
+    {%- elif group_name is match(regex_match_azure_zerotier_ip_mask_tag) -%}
+      {{ group_name | regex_replace(regex_match_azure_zerotier_ip_mask_tag, '\2.\3.\4.\5/\6') }}
+    {%- endif -%}
+  {%- endfor -%}

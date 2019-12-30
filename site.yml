@@ -1,0 +1,19 @@
+---
+- name: "Setup SSH"
+  hosts: vmmgmt1awx
+  gather_facts: false
+  tasks:
+  - setup:
+
+- name: "Ensure the Bastion is properly configured"
+  hosts: tag_Bastion_ip,Bastion_ip
+  gather_facts: false
+  tasks:
+  - include_role:
+      name: deliver_bastion
+
+- name: "Deliver ZeroTier to all ZeroTier hosts"
+  hosts: tag_ZeroTier_ip,ZeroTier_ip
+  tasks:
+  - include_role:
+      name: deploy_zerotier
